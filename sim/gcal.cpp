@@ -97,7 +97,8 @@ class gcal : public Network {
         CX.init();
         CX.allocate();
 
-        CX.addProjection(IN.Xptr, IN.hg, afferRadius, afferStrength*0.5, afferAlpha, afferSigma, true);
+        CX.addProjection(IN.Xptr, IN.hg, afferRadius, afferStrength, afferAlpha, afferSigma, true);
+        CX.addProjection(IN.Xptr, IN.hg, afferRadius, -afferStrength*0.5, afferAlpha, afferSigma, true);
         CX.addProjection(CX.Xptr, CX.hg, excitRadius, excitStrength, excitAlpha, excitSigma, true);
         CX.addProjection(CX.Xptr, CX.hg, inhibRadius, inhibStrength, inhibAlpha, inhibSigma, true);
 
