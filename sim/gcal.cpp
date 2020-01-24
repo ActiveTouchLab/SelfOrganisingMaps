@@ -317,8 +317,8 @@ int main(int argc, char **argv){
         case(0):{ // Gaussian patterns
         } break;
         case(1):{   // preload patterns
-            int ncols = root.get("cameraCols", 100).asUInt();
-            int nrows = root.get("cameraRows", 100).asUInt();
+            int ncols = root.get("cameraCols", 105).asUInt();
+            int nrows = root.get("cameraRows", 81).asUInt();
             Net.HCM.initProjection(ncols,nrows,0.01,20.);
             string filename = root.get ("patterns", "configs/testPatterns.h5").asString();
             Net.HCM.preloadPatterns(filename);
