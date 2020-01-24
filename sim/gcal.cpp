@@ -22,14 +22,13 @@ class gcal : public Network {
 
         HexCartSampler<double> HCM;
         PatternGenerator_Sheet<double> IN;
-        LGN<double> LGN_ON, LGN_OFF;
         CortexSOM<double> CX;
         vector<double> pref, sel;
         bool homeostasis, plotSettling;
         unsigned int settle;
         float beta, lambda, mu, thetaInit, xRange, yRange, afferAlpha, excitAlpha, inhibAlpha;
-        float afferStrength, excitStrength, inhibStrength, LGNstrength, scale;
-        float sigmaA, sigmaB, afferRadius, excitRadius, inhibRadius, afferSigma, excitSigma, inhibSigma, LGNCenterSigma, LGNSurroundSigma;
+        float afferStrength, excitStrength, inhibStrength, scale;
+        float sigmaA, sigmaB, afferRadius, excitRadius, inhibRadius, afferSigma, excitSigma, inhibSigma;
 
 
     gcal(void){
@@ -59,7 +58,6 @@ class gcal : public Network {
         afferStrength = root.get ("afferStrength", 1.5).asFloat();
         excitStrength = root.get ("excitStrength", 1.7).asFloat();
         inhibStrength = root.get ("inhibStrength", -1.4).asFloat();
-        LGNstrength = root.get ("LGNstrength", 14.0).asFloat();
 
         // spatial params
         scale = root.get ("scale", 0.5).asFloat();
@@ -71,8 +69,6 @@ class gcal : public Network {
         afferSigma = root.get ("afferSigma", 0.270).asFloat() * scale;
         excitSigma = root.get ("excitSigma", 0.025).asFloat() * scale;
         inhibSigma = root.get ("inhibSigma", 0.075).asFloat() * scale;
-        LGNCenterSigma = root.get ("LGNCenterSigma", 0.037).asFloat() * scale;
-        LGNSurroundSigma = root.get ("LGNSuroundSigma", 0.150).asFloat() * scale;
 
 
         // INITIALIZE LOGFILE
@@ -92,30 +88,6 @@ class gcal : public Network {
         IN.init();
         IN.allocate();
 
-        // LGN ON CELLS
-        LGN_ON.strength = LGNstrength;
-        LGN_ON.svgpath = root.get ("LGN_svgpath", "boundaries/trialmod.svg").asString();
-        LGN_ON.init();
-        LGN_ON.allocate();
-
-        LGN_ON.addProjection(IN.Xptr, IN.hg, afferRadius, +LGNstrength, 0.0, LGNCenterSigma, false);
-        LGN_ON.addProjection(IN.Xptr, IN.hg, afferRadius, -LGNstrength, 0.0, LGNSurroundSigma, false);
-        for(unsigned int i=0;i<LGN_ON.Projections.size();i++){
-            LGN_ON.Projections[i].renormalize();
-        }
-
-        LGN_OFF.strength = LGNstrength;
-        LGN_OFF.svgpath = root.get ("IN_svgpath", "boundaries/trialmod.svg").asString();
-        LGN_OFF.init();
-        LGN_OFF.allocate();
-
-        LGN_OFF.addProjection(IN.Xptr, IN.hg, afferRadius, -LGNstrength, 0.0, LGNCenterSigma, false);
-        LGN_OFF.addProjection(IN.Xptr, IN.hg, afferRadius, +LGNstrength, 0.0, LGNSurroundSigma, false);
-
-        for(unsigned int i=0;i<LGN_OFF.Projections.size();i++){
-            LGN_OFF.Projections[i].renormalize();
-        }
-
         // CORTEX SHEET
         CX.beta = beta;
         CX.lambda = lambda;
@@ -125,8 +97,7 @@ class gcal : public Network {
         CX.init();
         CX.allocate();
 
-        CX.addProjection(LGN_ON.Xptr, LGN_ON.hg, afferRadius, afferStrength*0.5, afferAlpha, afferSigma, true);
-        CX.addProjection(LGN_OFF.Xptr, LGN_OFF.hg, afferRadius, afferStrength*0.5, afferAlpha, afferSigma, true);
+        CX.addProjection(IN.Xptr, IN.hg, afferRadius, afferStrength*0.5, afferAlpha, afferSigma, true);
         CX.addProjection(CX.Xptr, CX.hg, excitRadius, excitStrength, excitAlpha, excitSigma, true);
         CX.addProjection(CX.Xptr, CX.hg, inhibRadius, inhibStrength, inhibAlpha, inhibSigma, true);
 
@@ -135,7 +106,7 @@ class gcal : public Network {
         p1[1] = 1;
         CX.setNormalize(p1);
         CX.setNormalize(vector<int>(1,2));
-        CX.setNormalize(vector<int>(1,3));
+        //CX.setNormalize(vector<int>(1,3));
         CX.renormalize();
 
         pref.resize(CX.nhex,0.);
@@ -167,17 +138,11 @@ class gcal : public Network {
                 IN.X = HCM.X;
             }
         }
-        LGN_ON.step();
-        LGN_OFF.step();
     }
 
-    void plotAfferent(morph::Gdisplay disp1, morph::Gdisplay disp2){
+    void plotAfferent(morph::Gdisplay disp1){
         vector<double> fx(3,0.); RD_Plot<double> plt(fx,fx,fx);
         plt.scalarfields (disp1, IN.hg, IN.X, 0., 1.0);
-        vector<vector<double> > L;
-        L.push_back(LGN_ON.X);
-        L.push_back(LGN_OFF.X);
-        plt.scalarfields (disp2, LGN_ON.hg, L);
     }
 
     void stepCortex(void){
@@ -249,8 +214,6 @@ class gcal : public Network {
             for(unsigned int j=0;j<nPhase;j++){
                 double phase = j*phaseInc;
                 IN.Grating(theta,phase,30.0,1.0);
-                LGN_ON.step();
-                LGN_OFF.step();
                 CX.zero_X();
                 CX.step(aff);
                 for(int k=0;k<maxPhase.size();k++){
@@ -396,8 +359,7 @@ int main(int argc, char **argv){
             vector<morph::Gdisplay> displays;
             displays.push_back(morph::Gdisplay(600, 600, 0, 0, "Input Activity", 1.7, 0.0, 0.0));
             displays.push_back(morph::Gdisplay(600, 600, 0, 0, "Cortical Activity", 1.7, 0.0, 0.0));
-            displays.push_back(morph::Gdisplay(1200, 400, 0, 0, "Cortical Projection", 1.7, 0.0, 0.0));
-            displays.push_back(morph::Gdisplay(600, 300, 0, 0, "LGN ON/OFF", 1.7, 0.0, 0.0));
+            //displays.push_back(morph::Gdisplay(1200, 400, 0, 0, "Cortical Projection", 1.7, 0.0, 0.0));
             displays.push_back(morph::Gdisplay(600, 600, 0, 0, "Map", 1.7, 0.0, 0.0));
             for(unsigned int i=0;i<displays.size();i++){
                 displays[i].resetDisplay (vector<double>(3,0),vector<double>(3,0),vector<double>(3,0));
@@ -405,12 +367,12 @@ int main(int argc, char **argv){
             }
             for(int b=0;b<nBlocks;b++){
                 Net.map();
-                Net.plotMap(displays[4]);
+                Net.plotMap(displays[2]);
                 for(unsigned int i=0;i<steps;i++){
                     Net.stepAfferent(INTYPE);
-                    Net.plotAfferent(displays[0],displays[3]);
+                    Net.plotAfferent(displays[0]);
                     Net.stepCortex(displays[1]);
-                    Net.plotWeights(displays[2],500);
+                    //Net.plotWeights(displays[2],500);
                 }
                 stringstream ss; ss << "weights_" << Net.time << ".h5";
                 Net.save(ss.str());
@@ -424,19 +386,18 @@ int main(int argc, char **argv){
             vector<morph::Gdisplay> displays;
             displays.push_back(morph::Gdisplay(600, 600, 0, 0, "Input Activity", 1.7, 0.0, 0.0));
             displays.push_back(morph::Gdisplay(600, 600, 0, 0, "Cortical Activity", 1.7, 0.0, 0.0));
-            displays.push_back(morph::Gdisplay(1200, 400, 0, 0, "Cortical Projection", 1.7, 0.0, 0.0));
-            displays.push_back(morph::Gdisplay(600, 300, 0, 0, "LGN ON/OFF", 1.7, 0.0, 0.0));
+            //displays.push_back(morph::Gdisplay(1200, 400, 0, 0, "Cortical Projection", 1.7, 0.0, 0.0));
             displays.push_back(morph::Gdisplay(600, 600, 0, 0, "Map", 1.7, 0.0, 0.0));
             for(unsigned int i=0;i<displays.size();i++){
                 displays[i].resetDisplay (vector<double>(3,0),vector<double>(3,0),vector<double>(3,0));
                 displays[i].redrawDisplay();
             }
             Net.map();
-            Net.plotMap(displays[4]);
+            Net.plotMap(displays[2]);
             Net.stepAfferent(INTYPE);
-            Net.plotAfferent(displays[0],displays[3]);
+            Net.plotAfferent(displays[0]);
             Net.stepCortex(displays[1]);
-            Net.plotWeights(displays[2],500);
+            //Net.plotWeights(displays[2],500);
             for(unsigned int i=0;i<displays.size();i++){
                 displays[i].redrawDisplay();
                 stringstream ss; ss << "plot_" << Net.time << "_" << i << ".png";
