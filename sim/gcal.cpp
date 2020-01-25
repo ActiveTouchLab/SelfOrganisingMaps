@@ -368,7 +368,7 @@ int main(int argc, char **argv){
             }
             for(int b=0;b<nBlocks;b++){
                 Net.map();
-                Net.plotMap(displays[2]);
+                Net.plotMap(displays[3]);
                 for(unsigned int i=0;i<steps;i++){
                     Net.stepAfferent(INTYPE);
                     Net.plotAfferent(displays[0]);
