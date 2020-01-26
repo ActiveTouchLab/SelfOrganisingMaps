@@ -3,7 +3,7 @@
 	"IN_svgpath" : "boundaries/trial.svg",
 	"CX_svgpath" : "boundaries/trial.svg",
   "patterns" : "configs/touchPatterns.h5",
-	"homeostasis" : true,	
+	"homeostasis" : true,
 	"blocks": 21,
 	"steps": 500,
 	"settle": 16,
@@ -26,5 +26,5 @@
 	"inhibRadius" : 0.23,
 	"afferSigma" : 0.27,
 	"excitSigma" : 0.025,
-	"inhibSigma" : 0.075,
+	"inhibSigma" : 0.075
 }
